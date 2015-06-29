@@ -55,3 +55,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Authentication
+authentication.json
+
+# PyCharm project
+.idea
