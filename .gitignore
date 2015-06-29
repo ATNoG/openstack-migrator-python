@@ -61,3 +61,6 @@ authentication.json
 
 # PyCharm project
 .idea
+
+# environment
+environment
