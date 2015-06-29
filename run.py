@@ -1,15 +1,20 @@
-from openstack import connection
-from openstack.profile import Profile
+from OpenstackRequests import Request
 import json
 
-# profile
-profile = Profile()
-profile.set_version('identity', 'v2')
 
-authentication_file = open('authentication.json', 'r')
-auth_args = json.load(authentication_file)
+if __name__ == '__main__':
+    authentication_file = open('authentication.json', 'r')
+    auth_args = json.load(authentication_file)
 
-conn = connection.Connection(profile=profile, **auth_args)
+    openstack = Request(auth_url=auth_args['auth_url'],
+                        project_name=auth_args['project_name'],
+                        username=auth_args['username'],
+                        password=auth_args['password'])
 
-for compute in conn.compute.servers():
-    print compute
+    # list tenants
+    response = openstack.get(slug_url="tenants")
+
+    for tenant in response["tenants"]:
+        print tenant["name"]
+
+    pass
