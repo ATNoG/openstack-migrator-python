@@ -36,10 +36,10 @@ if __name__ == '__main__':
         payload = {'tenant': {'name': tenant['name'], 'description': tenant['description'], 'enabled': tenant['enabled']}}
 
         # the fuel network has a management network to add tenants, [mac] sudo route -n add 10.10.1.2/32 193.136.92.148
-        tenants_new = openstack_new.post(url="http://10.10.1.2:35357/v2.0/", slug_url="tenants", payload=payload)
+        tenants_new = openstack_new.post(url=auth_args_new["auth_admin_url"], slug_url="tenants", payload=payload)
 
     # new, list tenants
-    response = openstack_new.get(slug_url="tenants")
+    response = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")
     PrintingService.tenants(response["tenants"])
 
     pass
