@@ -7,8 +7,15 @@ class SyncOpenstack:
     openstack_2 new openstack
     """
     def __init__(self):
+        file_export_name = 'export.json'
+
         # load from json
-        f = file('export.json', 'r')
+        try:
+            f = file(file_export_name, 'r')
+        except:
+            open(file_export_name, 'a').close()
+            f = file(file_export_name, 'r')
+
         try:
             self.export = json.loads(f)
 
