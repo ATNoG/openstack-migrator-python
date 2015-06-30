@@ -12,7 +12,7 @@ class SyncOpenstack:
         # load from json
         try:
             f = file(file_export_name, 'r')
-        except:
+        except IOError:
             open(file_export_name, 'a').close()
             f = file(file_export_name, 'r')
 
