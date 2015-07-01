@@ -1,5 +1,6 @@
 from OpenstackRequests import Request
 from PrintingService import PrintingService
+from SyncOpenstack import SyncOpenstack
 import json
 
 
@@ -45,15 +46,29 @@ if __name__ == '__main__':
         print e.message
         exit()
 
+    # sync class for store id from the old and new openstack
+    sync = SyncOpenstack()
+
     # list tenants
     response = openstack_old.get(slug_url="tenants")
 
     for tenant in response["tenants"]:
+        """
+        
+        """
         PrintingService.tenant(tenant)
         payload = {'tenant': {'name': tenant['name'], 'description': tenant['description'], 'enabled': tenant['enabled']}}
 
         # the fuel network has a management network to add tenants, [mac] sudo route -n add NETWORK_ID/32 GATEWAY_IP
         tenants_new = openstack_new.post(url=auth_args_new["auth_admin_url"], slug_url="tenants", payload=payload)
+
+        if "tenant" in tenants_new:
+            # sync if is created
+            sync.add_tenant_id(tenant["id"], tenants_new["tenant"]["id"])
+        else:
+            # get the already created tenant
+            response = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")
+            print "already exists"
 
     # new, list tenants
     response = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")

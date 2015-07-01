@@ -28,6 +28,9 @@ class SyncOpenstack:
             self.export = {}
             self.export["openstack_1"] = {}
             self.export["openstack_2"] = {}
+            # tenants
+            self.export["openstack_1"]["tenants"] = {}
+            self.export["openstack_2"]["tenants"] = {}
             self.save()
 
     def add_tenant_id(self, stack_1_tenant_id, stack_2_tenant_id):
