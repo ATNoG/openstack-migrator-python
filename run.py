@@ -99,7 +99,9 @@ if __name__ == '__main__':
     sync = SyncOpenstack()
 
     """
-    ---------------------------------------- TENANTS -----------------------------------------------
+    ###############################################################################################
+    #######                                Tenants                                          #######
+    ###############################################################################################
     This first part of the code pretends to make the tenant if doesn't exists or get the tenant if
     already exists in the OpenStack. If already exists the API when we attempt to create the tenant
     returns one error () if the tenant doesn't exists it will return the tenant information.
@@ -144,7 +146,11 @@ if __name__ == '__main__':
     PrintingService.tenants(response["tenants"])
 
     """
-    FLAVORS
+    ###############################################################################################
+    #######                                Flavors                                          #######
+    ###############################################################################################
+    Documentation comment
+    ------------------------------------------------------------------------------------------------
     """
     for tenant_id in sync.get_tenants_id():
         response = openstack_old.get(url="http://193.136.92.160:8774/v2/" + tenant_id + "/flavors")

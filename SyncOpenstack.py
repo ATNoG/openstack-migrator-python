@@ -8,8 +8,9 @@ import json
 
 class SyncOpenstack:
     """
-    openstack_1 old openstack
-    openstack_2 new openstack
+    This class pretends to make the export.json file with all the OpenStack information about the
+    new OpenStack and old OpenStack. It stores all the ids, for example the id of all the tenants
+    from the old openstack mapping the new OpenStack tenants ids.
     """
     def __init__(self):
         file_export_name = 'export.json'
