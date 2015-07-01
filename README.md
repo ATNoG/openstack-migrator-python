@@ -1,3 +1,6 @@
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/ATNoG/openstack-migrator-python/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/ATNoG/openstack-migrator-python/?branch=master) 
+[![Build Status](https://scrutinizer-ci.com/g/ATNoG/openstack-migrator-python/badges/build.png?b=master)](https://scrutinizer-ci.com/g/ATNoG/openstack-migrator-python/build-status/master)
+
 ## Requirements
 
 `sudo pip install -r requirements.txt`
