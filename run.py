@@ -52,10 +52,15 @@ if __name__ == '__main__':
     # list tenants
     response = openstack_old.get(slug_url="tenants")
 
+    """
+    ---------------------------------------- TENANTS -----------------------------------------------
+    This first part of the code pretends to make the tenant if doesn't exists or get the tenant if
+    already exists in the OpenStack. If already exists the API when we attempt to create the tenant
+    returns one error () if the tenant doesn't exists it will return the tenant information.
+    ------------------------------------------------------------------------------------------------
+    """
     for tenant in response["tenants"]:
-        """
-        
-        """
+
         PrintingService.tenant(tenant)
         payload = {'tenant': {'name': tenant['name'], 'description': tenant['description'], 'enabled': tenant['enabled']}}
 
@@ -67,8 +72,12 @@ if __name__ == '__main__':
             sync.add_tenant_id(tenant["id"], tenants_new["tenant"]["id"])
         else:
             # get the already created tenant
-            response = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")
-            print "already exists"
+            tenants_new = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")
+            for tenant_new in tenants_new["tenants"]:
+                if tenant["description"] == tenant_new["description"] and tenant["name"] == tenant_new["name"] \
+                        and tenant["enabled"] == tenant_new["enabled"]:
+                    sync.add_tenant_id(tenant["id"], tenant_new["id"])
+                    break
 
     # new, list tenants
     response = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")
