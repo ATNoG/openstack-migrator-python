@@ -44,6 +44,10 @@ class SyncOpenstack:
         except AttributeError:
             return False
 
+    def get_tenants_id(self, openstack="openstack_1"):
+        tenants = self.export[openstack]["tenants"]
+        return tenants.keys()
+
     def save(self):
         f = file('export.json', 'w')
         json.dump(self.export, f)

@@ -83,4 +83,11 @@ if __name__ == '__main__':
     response = openstack_new.get(url=auth_args_new["auth_admin_url"], slug_url="tenants")
     PrintingService.tenants(response["tenants"])
 
+    """
+    FLAVORS
+    """
+    for tenant_id in sync.get_tenants_id():
+        response = openstack_old.get(url="http://193.136.92.160:8774/v2/", slug_url=tenant_id+"/flavors")
+        pass
+
     pass
