@@ -4,7 +4,15 @@ import json
 
 
 if __name__ == '__main__':
-    authentication_file_old = open('authentication_old.json', 'r')
+    try:
+        authentication_file_old = open('authentication_old.json', 'r')
+    except IOError:
+        content = {"auth_url": "http://172.20.1.108:5000/v3", "auth_admin_url": "", "project_name": "admin", "username": "admin", "password": "admin"}
+        f = file("authentication_old.json", "a")
+        json.dump(content, f, sort_keys=True, indent=4, separators=(',', ': '))
+        f.close()
+        print "Please fill the authentication_old.json"
+        exit()
     auth_args_old = json.load(authentication_file_old)
 
     try:
@@ -16,7 +24,16 @@ if __name__ == '__main__':
         print e.message
         exit()
 
-    authentication_file_new = open('authentication_new.json', 'r')
+    try:
+        authentication_file_new = open('authentication_new.json', 'r')
+    except IOError:
+        content = {"auth_url": "http://172.32.1.108:5000/v3", "auth_admin_url": "", "project_name": "admin",
+                   "username": "admin", "password": "admin"}
+        f = file("authentication_new.json", "a")
+        json.dump(content, f, sort_keys=True, indent=4, separators=(',', ': '))
+        f.close()
+        print "Please fill the authentication_new.json"
+        exit()
     auth_args_new = json.load(authentication_file_new)
 
     try:
@@ -35,7 +52,7 @@ if __name__ == '__main__':
         PrintingService.tenant(tenant)
         payload = {'tenant': {'name': tenant['name'], 'description': tenant['description'], 'enabled': tenant['enabled']}}
 
-        # the fuel network has a management network to add tenants, [mac] sudo route -n add 10.10.1.2/32 193.136.92.148
+        # the fuel network has a management network to add tenants, [mac] sudo route -n add NETWORK_ID/32 GATEWAY_IP
         tenants_new = openstack_new.post(url=auth_args_new["auth_admin_url"], slug_url="tenants", payload=payload)
 
     # new, list tenants
