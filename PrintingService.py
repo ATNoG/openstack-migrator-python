@@ -1,3 +1,10 @@
+__author__ = "Rafael Ferreira and Andre Rainho"
+__copyright__ = "Copyright (C) 2015, ATNoG, Insituto de Telecomunicacoes - Aveiro"
+__license__ = "GPL 3.0"
+__version__ = "1.0"
+
+import debug
+
 
 class PrintingService:
     def __init__(self):
@@ -6,10 +13,10 @@ class PrintingService:
     @staticmethod
     def tenant(tenant):
         PrintingService.default_start("TENANT")
-        print "name: " + tenant["name"]
-        print "description: " + tenant["description"]
-        print "id: " + tenant["id"]
-        print "enabled: " + str(tenant["enabled"])
+        debug.debug_message("name: " + tenant["name"])
+        debug.debug_message("description: " + tenant["description"])
+        debug.debug_message("id: " + tenant["id"])
+        debug.debug_message("enabled: " + str(tenant["enabled"]))
         PrintingService.default_end()
 
     @staticmethod
@@ -19,8 +26,8 @@ class PrintingService:
 
     @staticmethod
     def default_start(name):
-        print "------------ "+name+" -----------"
+        debug.debug_message("------------ " + name + " -----------")
 
     @staticmethod
     def default_end():
-        print "------------   END    -----------"
+        debug.debug_message("------------   END    -----------")

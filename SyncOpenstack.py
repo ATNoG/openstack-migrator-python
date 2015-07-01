@@ -1,3 +1,8 @@
+__author__ = "Rafael Ferreira and Andre Rainho"
+__copyright__ = "Copyright (C) 2015, ATNoG, Insituto de Telecomunicacoes - Aveiro"
+__license__ = "GPL 3.0"
+__version__ = "1.0"
+
 import json
 
 
