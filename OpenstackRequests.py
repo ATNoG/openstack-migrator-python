@@ -37,7 +37,7 @@ class Request:
                              'passwordCredentials': {'username': self.auth_args["username"],
                               'password': self.auth_args["password"]}}})
 
-        # this line makes the request, with the url (for the keystone public uel) with the slug tokens and with the
+        # this line makes the request, with the url (for the keystone public url) with the slug tokens and with the
         # details prepared above
         r = requests.post(url=self.auth_args["url_keystone_public"]+"/tokens",
                           data=payload,
