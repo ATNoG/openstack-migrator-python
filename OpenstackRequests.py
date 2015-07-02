@@ -16,6 +16,16 @@ class Request:
     """
     def __init__(self, auth_args):
         self.auth_args = auth_args
+        self.current_project = self.auth_args["project_name"]
+        self.token = {}
+        self.get_token()
+
+    def set_project(self, project):
+        self.current_project = project
+        self.get_token()
+
+    def default_project(self):
+        self.current_project = self.auth_args["project_name"]
         self.get_token()
 
     def get_token(self):
@@ -23,7 +33,9 @@ class Request:
         headers = {'Content-Type': 'application/json'}
 
         # payload, the payload must has the authentication credentials such as the project name, username and password
-        payload = json.dumps({'auth': {'tenantName': self.auth_args["project_name"], 'passwordCredentials': {'username': self.auth_args["username"], 'password': self.auth_args["password"]}}})
+        payload = json.dumps({'auth': {'tenantName': self.current_project,
+                             'passwordCredentials': {'username': self.auth_args["username"],
+                              'password': self.auth_args["password"]}}})
 
         # this line makes the request, with the url (for the keystone public uel) with the slug tokens and with the
         # details prepared above
@@ -37,14 +49,14 @@ class Request:
         # if the authentication fails the token will not be in the access token id dictionary (make a breakpoint)
         # if you want to see the returning responses from the API.
         try:
-            self.token = response["access"]["token"]["id"]
+            self.token[self.current_project] = response["access"]["token"]["id"]
         except KeyError:
             raise Exception("Authentication fail!")
 
     def get(self, url):
         # every request must have the X-Auth-Token, be aware that the token can be phished and then used for
         # make request with a stolen account. You must make all the requests in HTTPS or in a secure environment.
-        headers = {'X-Auth-Token': self.token}
+        headers = {'X-Auth-Token': self.token[self.current_project]}
 
         r = requests.get(url=url, headers=headers)
 
@@ -53,9 +65,22 @@ class Request:
     def post(self, payload, url):
         # the difference between the get and the post is that the in the HTTP POST method the body has "data"
         # in our case the data has JSON text, so we must set the Content-Type: application/json
-        headers = {'X-Auth-Token': self.token,
+        headers = {'X-Auth-Token': self.token[self.current_project],
                    'Content-Type': 'application/json'}
 
         r = requests.post(url=url, headers=headers, data=json.dumps(payload))
+
+        return json.loads(r.text)
+
+    def put(self, url, payload=None):
+        # the difference between the get and the PUT is that the in the HTTP PUT method the body has "data"
+        # in our case the data has JSON text, so we must set the Content-Type: application/json
+        if payload is None:
+            headers = {'X-Auth-Token': self.token[self.current_project]}
+            r = requests.put(url=url, headers=headers)
+        else:
+            headers = {'X-Auth-Token': self.token[self.current_project],
+                       'Content-Type': 'application/json'}
+            r = requests.put(url=url, headers=headers, data=json.dumps(payload))
 
         return json.loads(r.text)

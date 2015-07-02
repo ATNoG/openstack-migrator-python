@@ -37,14 +37,17 @@ class SyncOpenstack:
             # tenants
             self.export["openstack_1"]["tenants"] = {}
             self.export["openstack_2"]["tenants"] = {}
+            # save it
             self.save()
 
-    def add_tenant_id(self, stack_1_tenant_id, stack_2_tenant_id):
-        self.export["openstack_1"]["tenants"][stack_1_tenant_id] = stack_2_tenant_id
-        self.export["openstack_2"]["tenants"][stack_2_tenant_id] = stack_1_tenant_id
+    # tenants
+
+    def add_tenant(self, stack_1_tenant, stack_2_tenant):
+        self.export["openstack_1"]["tenants"][stack_1_tenant["id"]] = stack_2_tenant
+        self.export["openstack_2"]["tenants"][stack_2_tenant["id"]] = stack_1_tenant
         self.save()
 
-    def get_tenant_id(self, tenant_id, openstack="openstack_1"):
+    def get_tenant(self, tenant_id, openstack="openstack_1"):
         try:
             return self.export[openstack]["tenants"][tenant_id]
         except AttributeError:
@@ -53,6 +56,15 @@ class SyncOpenstack:
     def get_tenants_id(self, openstack="openstack_1"):
         tenants = self.export[openstack]["tenants"]
         return tenants.keys()
+
+    # roles
+    def add_roles(self, roles, openstack="openstack_1"):
+        self.export[openstack]["roles"] = roles
+
+    def get_roles(self, openstack="openstack_1"):
+        return self.export[openstack]["roles"]
+
+    # save method to save in the json file
 
     def save(self):
         f = file('export.json', 'w')

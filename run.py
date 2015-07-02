@@ -105,8 +105,36 @@ if __name__ == '__main__':
     This first part of the code pretends to make the tenant if doesn't exists or get the tenant if
     already exists in the OpenStack. If already exists the API when we attempt to create the tenant
     returns one error () if the tenant doesn't exists it will return the tenant information.
-    ------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------
     """
+    # The admin must be member or admin of all projects, this is one rule of our administration. So we must
+    # get the role admin admin and then add the user admin to all the projects
+    # The url to make the changes is:
+    # PUT http://10.11.1.2:35357/v2.0/tenants/tenant-id/users/user-id/roles/OS-KSADM/role-id
+    # We must send the "tenant-id" (the new tenant id in the new OpenStack), the "user-id" is the admin "user-id"
+    # the "role-id" is the role id of the admin role
+    response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/OS-KSADM/roles")
+
+    # for other usages we must store the roles information in the sync object
+    sync.add_roles(response["roles"], openstack="openstack_2")
+    roles = sync.get_roles(openstack="openstack_2")
+
+    # now we want to get the "admin" role id
+    for role in roles:
+        if role["name"] == "admin":
+            role_admin_id = role["id"]
+            break
+
+    try:
+        role_admin_id
+    except NameError:
+        debug.debug_message("The admin role must be defined!")
+        exit()
+
+    # now we must get the "admin" id, we will make this with a call to the openstack new API
+    response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/users?name=admin")
+    admin_id = response["user"]["id"]
+
     # now we need to make one request to get the tenants information from the old openstack, our objective
     # is to create in the new openstack the tenant, if doesn't exists
     response = openstack_old.get(url=openstack_old.auth_args["url_keystone_public"]+"/tenants")
@@ -127,15 +155,19 @@ if __name__ == '__main__':
 
         if "tenant" in tenants_new:
             # sync if is created
-            sync.add_tenant_id(tenant["id"], tenants_new["tenant"]["id"])
+            sync.add_tenant(tenant, tenants_new["tenant"])
             debug.debug_message("TENANT created in the new openstack, id: " + tenants_new["tenant"]["id"])
+
+            # now we must to add the user to the admin list and user list of the tenant
+            response = openstack_new.put(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants/" +
+                              tenants_new["tenant"]["id"] + "/users/" + admin_id + "/roles/OS-KSADM/" + role_admin_id)
         else:
             # get the already created tenant
             tenants_new = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants")
             for tenant_new in tenants_new["tenants"]:
                 if tenant["description"] == tenant_new["description"] and tenant["name"] == tenant_new["name"] \
                         and tenant["enabled"] == tenant_new["enabled"]:
-                    sync.add_tenant_id(tenant["id"], tenant_new["id"])
+                    sync.add_tenant(tenant, tenant_new)
                     break
             debug.debug_message("TENANT sync done, tenant already exists, id_old:" + tenant["id"])
 
@@ -150,10 +182,26 @@ if __name__ == '__main__':
     #######                                Flavors                                          #######
     ###############################################################################################
     Documentation comment
-    ------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------
     """
-    for tenant_id in sync.get_tenants_id():
-        response = openstack_old.get(url="http://193.136.92.160:8774/v2/" + tenant_id + "/flavors")
-        pass
 
+    for tenant_id in sync.get_tenants_id():
+        response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" + tenant_id + "/flavors")
+
+        for flavor in response["flavors"]:
+            url = flavor["links"][0]["href"]
+            flavor_details = openstack_old.get(url=url)
+            flavor = flavor_details["flavor"]
+
+            payload = {
+                "name": flavor["name"],
+                "ram": flavor["ram"],
+                "vcpus": flavor["vcpus"],
+                "disk": flavor["disk"]
+            }
+
+            openstack_new.set_project(project=sync.get_tenant(tenant_id)["name"])
+            response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                                 sync.get_tenant(tenant_id)["id"] + "/flavors", payload=payload)
+            pass
     pass
