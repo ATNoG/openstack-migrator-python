@@ -56,11 +56,7 @@ if __name__ == '__main__':
         openstack_old = Request(auth_args=auth_args_old)
         debug.debug_message("Authentication in the old OpenStack made!")
     except Exception, e:
-        print e.message
-
-        ### debug.debug_message("Authentication failed!")
-        ### RAINHO
-
+        debug.debug_message(e.message)
         exit()
 
     """
