@@ -185,6 +185,17 @@ if __name__ == '__main__':
     -----------------------------------------------------------------------------------------------
     """
 
+    # we will need the tenant id for the tenant "admin"
+    for tenant in response["tenants"]:
+        if tenant["name"] == "admin":
+            tenant_admin_id = tenant["id"]
+
+    try:
+        role_admin_id
+    except NameError:
+        debug.debug_message("The tenant admin must be defined!")
+        exit()
+
     for tenant_id in sync.get_tenants_id():
         response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" + tenant_id + "/flavors")
 
@@ -193,15 +204,23 @@ if __name__ == '__main__':
             flavor_details = openstack_old.get(url=url)
             flavor = flavor_details["flavor"]
 
-            payload = {
+            if isinstance(flavor["swap"], basestring):
+                swap = 0
+            else:
+                swap = flavor["swap"]
+
+            payload = {"flavor": {
                 "name": flavor["name"],
                 "ram": flavor["ram"],
                 "vcpus": flavor["vcpus"],
-                "disk": flavor["disk"]
-            }
+                "disk": flavor["disk"],
+                "swap": swap,
+                "OS-FLV-EXT-DATA:ephemeral": flavor["OS-FLV-EXT-DATA:ephemeral"],
+                "os-flavor-access:is_public": flavor["os-flavor-access:is_public"],
+                "rxtx_factor": flavor["rxtx_factor"],
+                "id": flavor["id"]
+            }}
 
-            openstack_new.set_project(project=sync.get_tenant(tenant_id)["name"])
-            response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" +
-                                                 sync.get_tenant(tenant_id)["id"] + "/flavors", payload=payload)
-            pass
+            response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" + tenant_admin_id +
+                                                 "/flavors", payload=payload)
     pass
