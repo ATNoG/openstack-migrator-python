@@ -307,4 +307,35 @@ if __name__ == '__main__':
                                  payload=payload)
 
     debug.debug_hash_line()
+
+    """
+    ###############################################################################################
+    #######                                Tenants Quota                                    #######
+    ###############################################################################################
+    Documentation comment
+    -----------------------------------------------------------------------------------------------
+    """
+    for tenant_id in sync.get_tenants_id():
+        response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" +
+                                     openstack_old.get_current_tenant_details()["id"] + "/os-quota-sets/" + tenant_id)
+
+        payload = {"quota_set": {"tenant_id": sync.get_tenant(tenant_id)["id"],
+                                 "cores": response["quota_set"]["cores"],
+                                 "fixed_ips": response["quota_set"]["fixed_ips"],
+                                 "floating_ips": response["quota_set"]["floating_ips"],
+                                 "injected_file_content_bytes": response["quota_set"]["injected_file_content_bytes"],
+                                 "injected_file_path_bytes": response["quota_set"]["injected_file_path_bytes"],
+                                 "injected_files": response["quota_set"]["injected_files"],
+                                 "instances": response["quota_set"]["instances"],
+                                 "key_pairs": response["quota_set"]["key_pairs"],
+                                 "metadata_items": response["quota_set"]["metadata_items"],
+                                 "ram": response["quota_set"]["ram"],
+                                 "security_group_rules": response["quota_set"]["security_group_rules"],
+                                 "security_groups": response["quota_set"]["security_groups"]}}
+
+        response = openstack_new.put(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                     openstack_new.get_current_tenant_details()["id"] + "/os-quota-sets/" +
+                                     sync.get_tenant(tenant_id)["id"],
+                                     payload=payload)
+        pass
     pass
