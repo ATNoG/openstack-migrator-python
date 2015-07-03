@@ -18,15 +18,20 @@ class Request:
         self.auth_args = auth_args
         self.current_project = self.auth_args["project_name"]
         self.token = {}
+        self.tenant_details = {}
         self.get_token()
 
     def set_project(self, project):
         self.current_project = project
-        self.get_token()
+
+        if self.current_project not in self.token:
+            self.get_token()
 
     def default_project(self):
         self.current_project = self.auth_args["project_name"]
-        self.get_token()
+
+    def get_current_tenant_details(self):
+        return self.tenant_details[self.current_project]
 
     def get_token(self):
         # the request must have json content-type
@@ -50,6 +55,7 @@ class Request:
         # if you want to see the returning responses from the API.
         try:
             self.token[self.current_project] = response["access"]["token"]["id"]
+            self.tenant_details[self.current_project] = response["access"]["token"]["tenant"]
         except KeyError:
             raise Exception("Authentication fail!")
 

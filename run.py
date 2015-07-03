@@ -158,8 +158,8 @@ if __name__ == '__main__':
             sync.add_tenant(tenant, tenants_new["tenant"])
             debug.debug_message("TENANT created in the new openstack, id: " + tenants_new["tenant"]["id"])
 
-            # now we must to add the user to the admin list and user list of the tenant
-            response = openstack_new.put(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants/" +
+            # now we must to add the admin user to the admin list of the tenant
+            openstack_new.put(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants/" +
                               tenants_new["tenant"]["id"] + "/users/" + admin_id + "/roles/OS-KSADM/" + role_admin_id)
         else:
             # get the already created tenant
@@ -192,12 +192,13 @@ if __name__ == '__main__':
     # we will need the tenant id for the tenant "admin", all the tenants are registered as admin flavors
     for tenant in response["tenants"]:
         if tenant["name"] == "admin":
-            tenant_admin_id = tenant["id"]
+            tenant_admin_id_new = tenant["id"]
 
     try:
         # verify if the tenant admin id was successfully retrieved
-        role_admin_id
-    except NameError:
+        tenant_admin_id_new
+        debug.debug_message("tenant admin id was successfully retrieved")
+    except AttributeError:
         debug.debug_message("The tenant admin must be defined!")
         exit()
 
@@ -237,14 +238,24 @@ if __name__ == '__main__':
             # try to create the tenant, if the tenant already exists it will return one dict with
             # an entry "conflictingRequest" else if is created successfuly it will return one dict with the
             # tenant created
-            response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" + tenant_admin_id +
+            response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" + tenant_admin_id_new +
                                                  "/flavors", payload=payload)
 
             if "conflictingRequest" in response_create or "flavor" in response_create:
+                debug.debug_message("flavor created or already created: " + flavor["name"])
                 # now we must give flavor access to the current tenant
-                
+                payload = {"addTenantAccess": {"tenant": sync.get_tenant(tenant_id)["id"]}}
+                # now we need to make the authentication in the project
+                openstack_new.set_project(sync.get_tenant(tenant_id)["name"])
+                response_access = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                                     sync.get_tenant(tenant_id)["id"] + "/flavors/" +
+                                                     flavor["id"] + "/action", payload=payload)
+                debug.debug_message("added tenant: " + tenant_id + " access to the flavor: " + flavor["name"])
+                openstack_new.default_project()
                 pass
             else:
                 debug.debug_message("Something went wrong!")
                 exit()
+
+            debug.debug_hash_line()
     pass
