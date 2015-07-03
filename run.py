@@ -242,17 +242,28 @@ if __name__ == '__main__':
                                                  "/flavors", payload=payload)
 
             if "conflictingRequest" in response_create or "flavor" in response_create:
-                debug.debug_message("flavor created or already created: " + flavor["name"])
+                if "conflictingRequest" in response_create:
+                    debug.debug_message("flavor already created: " + flavor["name"])
+                else:
+                    debug.debug_message("flavor created: " + flavor["name"])
+
                 # now we must give flavor access to the current tenant
                 payload = {"addTenantAccess": {"tenant": sync.get_tenant(tenant_id)["id"]}}
                 # now we need to make the authentication in the project
                 openstack_new.set_project(sync.get_tenant(tenant_id)["name"])
+                # and now we can make the request
                 response_access = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" +
                                                      sync.get_tenant(tenant_id)["id"] + "/flavors/" +
                                                      flavor["id"] + "/action", payload=payload)
-                debug.debug_message("added tenant: " + tenant_id + " access to the flavor: " + flavor["name"])
+
+                if "conflictingRequest" in response_access:
+                    debug.debug_message("the tenant: " + tenant_id + " already has access to the flavor: "
+                                        + flavor["name"])
+                else:
+                    debug.debug_message("added tenant: " + tenant_id + " access to the flavor: " + flavor["name"])
+
+                # we must back to the default project
                 openstack_new.default_project()
-                pass
             else:
                 debug.debug_message("Something went wrong!")
                 exit()
