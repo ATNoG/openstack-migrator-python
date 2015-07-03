@@ -269,4 +269,42 @@ if __name__ == '__main__':
                 exit()
 
             debug.debug_hash_line()
+
+    """
+    ###############################################################################################
+    #######                                Default Quota                                    #######
+    ###############################################################################################
+    Documentation comment
+    -----------------------------------------------------------------------------------------------
+    """
+    debug.debug_hash_line()
+    debug.debug_message("Default quota")
+
+    # get the default quota for the old openstack
+    response_quote = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" +
+                                       openstack_old.get_current_tenant_details()["id"] + "/os-quota-sets/" +
+                                       openstack_old.get_current_tenant_details()["id"] + "/defaults")
+
+    debug.debug_message("the default quota retrieved [old openstack]")
+
+
+    payload = {"quota_class_set": {"injected_file_content_bytes": response_quote["quota_set"]["injected_file_content_bytes"],
+                                   "metadata_items": response_quote["quota_set"]["metadata_items"],
+                                   "ram": response_quote["quota_set"]["ram"],
+                                   "floating_ips": response_quote["quota_set"]["floating_ips"],
+                                   "key_pairs": response_quote["quota_set"]["key_pairs"],
+                                   "instances": response_quote["quota_set"]["instances"],
+                                   "security_group_rules": response_quote["quota_set"]["security_group_rules"],
+                                   "injected_files": response_quote["quota_set"]["injected_files"],
+                                   "cores": response_quote["quota_set"]["cores"],
+                                   "fixed_ips": response_quote["quota_set"]["fixed_ips"],
+                                   "injected_file_path_bytes": response_quote["quota_set"]["injected_file_path_bytes"],
+                                   "security_groups": response_quote["quota_set"]["security_groups"]}}
+
+    # now we must set the default quota in the new openstack
+    response = openstack_new.put(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                 openstack_new.get_current_tenant_details()["id"] + "/os-quota-class-sets/default",
+                                 payload=payload)
+
+    debug.debug_hash_line()
     pass
