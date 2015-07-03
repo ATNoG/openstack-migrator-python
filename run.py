@@ -184,26 +184,39 @@ if __name__ == '__main__':
     Documentation comment
     -----------------------------------------------------------------------------------------------
     """
+    debug.debug_hash_line()
+    debug.debug_message("Flavors")
 
-    # we will need the tenant id for the tenant "admin"
+    # we pretend to make the flavor and give access to the project that has the tenant. If the tenant
+    # is already created it must be able to give access to the tenant for the flavor
+    # we will need the tenant id for the tenant "admin", all the tenants are registered as admin flavors
     for tenant in response["tenants"]:
         if tenant["name"] == "admin":
             tenant_admin_id = tenant["id"]
 
     try:
+        # verify if the tenant admin id was successfully retrieved
         role_admin_id
     except NameError:
         debug.debug_message("The tenant admin must be defined!")
         exit()
 
+    # for each tenant we must get the flavor associated to the tenant
+    # if the flavor is already created we only must verify if the tenant has access to the flavor
     for tenant_id in sync.get_tenants_id():
+        # we must get in the old openstack the flavors list
         response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" + tenant_id + "/flavors")
 
+        # for each flavor we must verify if is created and if it's created it must be given access to the
+        # tenant to the flavor.
         for flavor in response["flavors"]:
+            # if you make one breakpoint to see the response, the flavor details only are retrieved with the
+            # flavor -> links -> 0 -> href
             url = flavor["links"][0]["href"]
             flavor_details = openstack_old.get(url=url)
             flavor = flavor_details["flavor"]
 
+            # the swap must be integer
             if isinstance(flavor["swap"], basestring):
                 swap = 0
             else:
@@ -221,6 +234,17 @@ if __name__ == '__main__':
                 "id": flavor["id"]
             }}
 
+            # try to create the tenant, if the tenant already exists it will return one dict with
+            # an entry "conflictingRequest" else if is created successfuly it will return one dict with the
+            # tenant created
             response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" + tenant_admin_id +
                                                  "/flavors", payload=payload)
+
+            if "conflictingRequest" in response_create or "flavor" in response_create:
+                # now we must give flavor access to the current tenant
+                
+                pass
+            else:
+                debug.debug_message("Something went wrong!")
+                exit()
     pass
