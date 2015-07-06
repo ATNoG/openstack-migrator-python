@@ -87,255 +87,292 @@ if __name__ == '__main__':
         debug.debug_message(e.message)
         exit()
 
-    """
-    ###############################################################################################
-    #######                                Sync class                                       #######
-    ###############################################################################################
-    """
-    debug.debug_hash_line()
+    if False:
+        """
+        ###############################################################################################
+        #######                                Sync class                                       #######
+        ###############################################################################################
+        """
+        debug.debug_hash_line()
 
-    # Sync class for store id from the old and new openstack, it can store all the tenants ids for
-    # example, or other ones. When the data is stored the .json is saved with all the data stored
-    sync = SyncOpenstack()
+        # Sync class for store id from the old and new openstack, it can store all the tenants ids for
+        # example, or other ones. When the data is stored the .json is saved with all the data stored
+        sync = SyncOpenstack()
 
-    """
-    ###############################################################################################
-    #######                                Tenants                                          #######
-    ###############################################################################################
-    This first part of the code pretends to make the tenant if doesn't exists or get the tenant if
-    already exists in the OpenStack. If already exists the API when we attempt to create the tenant
-    returns one error () if the tenant doesn't exists it will return the tenant information.
-    -----------------------------------------------------------------------------------------------
-    """
-    # The admin must be member or admin of all projects, this is one rule of our administration. So we must
-    # get the role admin admin and then add the user admin to all the projects
-    # The url to make the changes is:
-    # PUT http://10.11.1.2:35357/v2.0/tenants/tenant-id/users/user-id/roles/OS-KSADM/role-id
-    # We must send the "tenant-id" (the new tenant id in the new OpenStack), the "user-id" is the admin "user-id"
-    # the "role-id" is the role id of the admin role
-    response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/OS-KSADM/roles")
+        """
+        ###############################################################################################
+        #######                                Tenants                                          #######
+        ###############################################################################################
+        This first part of the code pretends to make the tenant if doesn't exists or get the tenant if
+        already exists in the OpenStack. If already exists the API when we attempt to create the tenant
+        returns one error () if the tenant doesn't exists it will return the tenant information.
+        -----------------------------------------------------------------------------------------------
+        """
+        # The admin must be member or admin of all projects, this is one rule of our administration. So we must
+        # get the role admin admin and then add the user admin to all the projects
+        # The url to make the changes is:
+        # PUT http://10.11.1.2:35357/v2.0/tenants/tenant-id/users/user-id/roles/OS-KSADM/role-id
+        # We must send the "tenant-id" (the new tenant id in the new OpenStack), the "user-id" is the admin "user-id"
+        # the "role-id" is the role id of the admin role
+        response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/OS-KSADM/roles")
 
-    # for other usages we must store the roles information in the sync object
-    sync.add_roles(response["roles"], openstack="openstack_2")
-    roles = sync.get_roles(openstack="openstack_2")
+        # for other usages we must store the roles information in the sync object
+        sync.add_roles(response["roles"], openstack="openstack_2")
+        roles = sync.get_roles(openstack="openstack_2")
 
-    # now we want to get the "admin" role id
-    for role in roles:
-        if role["name"] == "admin":
-            role_admin_id = role["id"]
-            break
+        # now we want to get the "admin" role id
+        for role in roles:
+            if role["name"] == "admin":
+                role_admin_id = role["id"]
+                break
 
-    try:
-        role_admin_id
-    except NameError:
-        debug.debug_message("The admin role must be defined!")
-        exit()
+        try:
+            role_admin_id
+        except NameError:
+            debug.debug_message("The admin role must be defined!")
+            exit()
 
-    # now we must get the "admin" id, we will make this with a call to the openstack new API
-    response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/users?name=admin")
-    admin_id = response["user"]["id"]
+        # now we must get the "admin" id, we will make this with a call to the openstack new API
+        response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/users?name=admin")
+        admin_id = response["user"]["id"]
 
-    # now we need to make one request to get the tenants information from the old openstack, our objective
-    # is to create in the new openstack the tenant, if doesn't exists
-    response = openstack_old.get(url=openstack_old.auth_args["url_keystone_public"]+"/tenants")
+        # now we need to make one request to get the tenants information from the old openstack, our objective
+        # is to create in the new openstack the tenant, if doesn't exists
+        response = openstack_old.get(url=openstack_old.auth_args["url_keystone_public"]+"/tenants")
 
-    debug.debug_hash_line()
-    debug.debug_message("Old OpenStack tenants")
+        debug.debug_hash_line()
+        debug.debug_message("Old OpenStack tenants")
 
-    # the response is one dictionary with tenants and tenants_links (you can make a breakpoint and debug to
-    # see more details)
-    for tenant in response["tenants"]:
-        # This printing service only  makes prints, we send one dictionary returned by the API with the information
-        # that we pretend, for example, now we want that the printing service make print of the tenant
-        PrintingService.tenant(tenant)
-        payload = {'tenant': {'name': tenant['name'], 'description': tenant['description'], 'enabled': tenant['enabled']}}
+        # the response is one dictionary with tenants and tenants_links (you can make a breakpoint and debug to
+        # see more details)
+        for tenant in response["tenants"]:
+            # This printing service only  makes prints, we send one dictionary returned by the API with the information
+            # that we pretend, for example, now we want that the printing service make print of the tenant
+            PrintingService.tenant(tenant)
+            payload = {'tenant': {'name': tenant['name'], 'description': tenant['description'], 'enabled': tenant['enabled']}}
 
-        # the fuel network has a management network to add tenants, [mac] sudo route -n add NETWORK_ID/32 GATEWAY_IP
-        tenants_new = openstack_new.post(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants", payload=payload)
+            # the fuel network has a management network to add tenants, [mac] sudo route -n add NETWORK_ID/32 GATEWAY_IP
+            tenants_new = openstack_new.post(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants", payload=payload)
 
-        if "tenant" in tenants_new:
-            # sync if is created
-            sync.add_tenant(tenant, tenants_new["tenant"])
-            debug.debug_message("TENANT created in the new openstack, id: " + tenants_new["tenant"]["id"])
+            if "tenant" in tenants_new:
+                # sync if is created
+                sync.add_tenant(tenant, tenants_new["tenant"])
+                debug.debug_message("TENANT created in the new openstack, id: " + tenants_new["tenant"]["id"])
 
-            # now we must to add the admin user to the admin list of the tenant
-            openstack_new.put(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants/" +
-                              tenants_new["tenant"]["id"] + "/users/" + admin_id + "/roles/OS-KSADM/" + role_admin_id)
-        else:
-            # get the already created tenant
-            tenants_new = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants")
-            for tenant_new in tenants_new["tenants"]:
-                if tenant["description"] == tenant_new["description"] and tenant["name"] == tenant_new["name"] \
-                        and tenant["enabled"] == tenant_new["enabled"]:
-                    sync.add_tenant(tenant, tenant_new)
-                    break
-            debug.debug_message("TENANT sync done, tenant already exists, id_old:" + tenant["id"])
-
-    # new, list tenants at the new OpenStack
-    response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants")
-    debug.debug_hash_line()
-    debug.debug_message("Tenants at the new OpenStack")
-    PrintingService.tenants(response["tenants"])
-
-    """
-    ###############################################################################################
-    #######                                Flavors                                          #######
-    ###############################################################################################
-    Documentation comment
-    -----------------------------------------------------------------------------------------------
-    """
-    debug.debug_hash_line()
-    debug.debug_message("Flavors")
-
-    # we pretend to make the flavor and give access to the project that has the tenant. If the tenant
-    # is already created it must be able to give access to the tenant for the flavor
-    # we will need the tenant id for the tenant "admin", all the tenants are registered as admin flavors
-    for tenant in response["tenants"]:
-        if tenant["name"] == "admin":
-            tenant_admin_id_new = tenant["id"]
-
-    try:
-        # verify if the tenant admin id was successfully retrieved
-        tenant_admin_id_new
-        debug.debug_message("tenant admin id was successfully retrieved")
-    except AttributeError:
-        debug.debug_message("The tenant admin must be defined!")
-        exit()
-
-    # for each tenant we must get the flavor associated to the tenant
-    # if the flavor is already created we only must verify if the tenant has access to the flavor
-    for tenant_id in sync.get_tenants_id():
-        # we must get in the old openstack the flavors list
-        response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" + tenant_id + "/flavors")
-
-        # for each flavor we must verify if is created and if it's created it must be given access to the
-        # tenant to the flavor.
-        for flavor in response["flavors"]:
-            # if you make one breakpoint to see the response, the flavor details only are retrieved with the
-            # flavor -> links -> 0 -> href
-            url = flavor["links"][0]["href"]
-            flavor_details = openstack_old.get(url=url)
-            flavor = flavor_details["flavor"]
-
-            # the swap must be integer
-            if isinstance(flavor["swap"], basestring):
-                swap = 0
+                # now we must to add the admin user to the admin list of the tenant
+                openstack_new.put(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants/" +
+                                  tenants_new["tenant"]["id"] + "/users/" + admin_id + "/roles/OS-KSADM/" + role_admin_id)
             else:
-                swap = flavor["swap"]
+                # get the already created tenant
+                tenants_new = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants")
+                for tenant_new in tenants_new["tenants"]:
+                    if tenant["description"] == tenant_new["description"] and tenant["name"] == tenant_new["name"] \
+                            and tenant["enabled"] == tenant_new["enabled"]:
+                        sync.add_tenant(tenant, tenant_new)
+                        break
+                debug.debug_message("TENANT sync done, tenant already exists, id_old:" + tenant["id"])
 
-            payload = {"flavor": {
-                "name": flavor["name"],
-                "ram": flavor["ram"],
-                "vcpus": flavor["vcpus"],
-                "disk": flavor["disk"],
-                "swap": swap,
-                "OS-FLV-EXT-DATA:ephemeral": flavor["OS-FLV-EXT-DATA:ephemeral"],
-                "os-flavor-access:is_public": flavor["os-flavor-access:is_public"],
-                "rxtx_factor": flavor["rxtx_factor"],
-                "id": flavor["id"]
-            }}
+        # new, list tenants at the new OpenStack
+        response = openstack_new.get(url=openstack_new.auth_args["url_keystone_admin"]+"/tenants")
+        debug.debug_hash_line()
+        debug.debug_message("Tenants at the new OpenStack")
+        PrintingService.tenants(response["tenants"])
 
-            # try to create the tenant, if the tenant already exists it will return one dict with
-            # an entry "conflictingRequest" else if is created successfuly it will return one dict with the
-            # tenant created
-            response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" + tenant_admin_id_new +
-                                                 "/flavors", payload=payload)
+        """
+        ###############################################################################################
+        #######                                Flavors                                          #######
+        ###############################################################################################
+        Documentation comment
+        -----------------------------------------------------------------------------------------------
+        """
+        debug.debug_hash_line()
+        debug.debug_message("Flavors")
 
-            if "conflictingRequest" in response_create or "flavor" in response_create:
-                if "conflictingRequest" in response_create:
-                    debug.debug_message("flavor already created: " + flavor["name"])
+        # we pretend to make the flavor and give access to the project that has the tenant. If the tenant
+        # is already created it must be able to give access to the tenant for the flavor
+        # we will need the tenant id for the tenant "admin", all the tenants are registered as admin flavors
+        for tenant in response["tenants"]:
+            if tenant["name"] == "admin":
+                tenant_admin_id_new = tenant["id"]
+
+        try:
+            # verify if the tenant admin id was successfully retrieved
+            tenant_admin_id_new
+            debug.debug_message("tenant admin id was successfully retrieved")
+        except AttributeError:
+            debug.debug_message("The tenant admin must be defined!")
+            exit()
+
+        # for each tenant we must get the flavor associated to the tenant
+        # if the flavor is already created we only must verify if the tenant has access to the flavor
+        for tenant_id in sync.get_tenants_id():
+            # we must get in the old openstack the flavors list
+            response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" + tenant_id + "/flavors")
+
+            # for each flavor we must verify if is created and if it's created it must be given access to the
+            # tenant to the flavor.
+            for flavor in response["flavors"]:
+                # if you make one breakpoint to see the response, the flavor details only are retrieved with the
+                # flavor -> links -> 0 -> href
+                url = flavor["links"][0]["href"]
+                flavor_details = openstack_old.get(url=url)
+                flavor = flavor_details["flavor"]
+
+                # the swap must be integer
+                if isinstance(flavor["swap"], basestring):
+                    swap = 0
                 else:
-                    debug.debug_message("flavor created: " + flavor["name"])
+                    swap = flavor["swap"]
 
-                # now we must give flavor access to the current tenant
-                payload = {"addTenantAccess": {"tenant": sync.get_tenant(tenant_id)["id"]}}
-                # now we need to make the authentication in the project
-                openstack_new.set_project(sync.get_tenant(tenant_id)["name"])
-                # and now we can make the request
-                response_access = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" +
-                                                     sync.get_tenant(tenant_id)["id"] + "/flavors/" +
-                                                     flavor["id"] + "/action", payload=payload)
+                payload = {"flavor": {
+                    "name": flavor["name"],
+                    "ram": flavor["ram"],
+                    "vcpus": flavor["vcpus"],
+                    "disk": flavor["disk"],
+                    "swap": swap,
+                    "OS-FLV-EXT-DATA:ephemeral": flavor["OS-FLV-EXT-DATA:ephemeral"],
+                    "os-flavor-access:is_public": flavor["os-flavor-access:is_public"],
+                    "rxtx_factor": flavor["rxtx_factor"],
+                    "id": flavor["id"]
+                }}
 
-                if "conflictingRequest" in response_access:
-                    debug.debug_message("the tenant: " + tenant_id + " already has access to the flavor: "
-                                        + flavor["name"])
+                # try to create the tenant, if the tenant already exists it will return one dict with
+                # an entry "conflictingRequest" else if is created successfuly it will return one dict with the
+                # tenant created
+                response_create = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" + tenant_admin_id_new +
+                                                     "/flavors", payload=payload)
+
+                if "conflictingRequest" in response_create or "flavor" in response_create:
+                    if "conflictingRequest" in response_create:
+                        debug.debug_message("flavor already created: " + flavor["name"])
+                    else:
+                        debug.debug_message("flavor created: " + flavor["name"])
+
+                    # now we must give flavor access to the current tenant
+                    payload = {"addTenantAccess": {"tenant": sync.get_tenant(tenant_id)["id"]}}
+                    # now we need to make the authentication in the project
+                    openstack_new.set_project(sync.get_tenant(tenant_id)["name"])
+                    # and now we can make the request
+                    response_access = openstack_new.post(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                                         sync.get_tenant(tenant_id)["id"] + "/flavors/" +
+                                                         flavor["id"] + "/action", payload=payload)
+
+                    if "conflictingRequest" in response_access:
+                        debug.debug_message("the tenant: " + tenant_id + " already has access to the flavor: "
+                                            + flavor["name"])
+                    else:
+                        debug.debug_message("added tenant: " + tenant_id + " access to the flavor: " + flavor["name"])
+
+                    # we must back to the default project
+                    openstack_new.default_project()
                 else:
-                    debug.debug_message("added tenant: " + tenant_id + " access to the flavor: " + flavor["name"])
+                    debug.debug_message("Something went wrong!")
+                    exit()
 
-                # we must back to the default project
-                openstack_new.default_project()
-            else:
-                debug.debug_message("Something went wrong!")
-                exit()
+                debug.debug_hash_line()
+
+        """
+        ###############################################################################################
+        #######                                Default Quota                                    #######
+        ###############################################################################################
+        Documentation comment
+        -----------------------------------------------------------------------------------------------
+        """
+        debug.debug_hash_line()
+        debug.debug_message("Default quota")
+
+        # get the default quota for the old openstack
+        response_quote = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" +
+                                           openstack_old.get_current_tenant_details()["id"] + "/os-quota-sets/" +
+                                           openstack_old.get_current_tenant_details()["id"] + "/defaults")
+
+        debug.debug_message("the default quota retrieved [old openstack]")
+
+
+        payload = {"quota_class_set": {"injected_file_content_bytes": response_quote["quota_set"]["injected_file_content_bytes"],
+                                       "metadata_items": response_quote["quota_set"]["metadata_items"],
+                                       "ram": response_quote["quota_set"]["ram"],
+                                       "floating_ips": response_quote["quota_set"]["floating_ips"],
+                                       "key_pairs": response_quote["quota_set"]["key_pairs"],
+                                       "instances": response_quote["quota_set"]["instances"],
+                                       "security_group_rules": response_quote["quota_set"]["security_group_rules"],
+                                       "injected_files": response_quote["quota_set"]["injected_files"],
+                                       "cores": response_quote["quota_set"]["cores"],
+                                       "fixed_ips": response_quote["quota_set"]["fixed_ips"],
+                                       "injected_file_path_bytes": response_quote["quota_set"]["injected_file_path_bytes"],
+                                       "security_groups": response_quote["quota_set"]["security_groups"]}}
+
+        # now we must set the default quota in the new openstack
+        response = openstack_new.put(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                     openstack_new.get_current_tenant_details()["id"] + "/os-quota-class-sets/default",
+                                     payload=payload)
+
+        debug.debug_hash_line()
+
+        """
+        ###############################################################################################
+        #######                                Tenants Quota                                    #######
+        ###############################################################################################
+        Documentation comment
+        -----------------------------------------------------------------------------------------------
+        """
+        debug.debug_hash_line()
+        debug.debug_message("Tenants quota")
+
+        for tenant_id in sync.get_tenants_id():
+            response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" +
+                                         openstack_old.get_current_tenant_details()["id"] + "/os-quota-sets/" + tenant_id)
+
+            payload = {"quota_set": {"tenant_id": sync.get_tenant(tenant_id)["id"],
+                                     "cores": response["quota_set"]["cores"],
+                                     "fixed_ips": response["quota_set"]["fixed_ips"],
+                                     "floating_ips": response["quota_set"]["floating_ips"],
+                                     "injected_file_content_bytes": response["quota_set"]["injected_file_content_bytes"],
+                                     "injected_file_path_bytes": response["quota_set"]["injected_file_path_bytes"],
+                                     "injected_files": response["quota_set"]["injected_files"],
+                                     "instances": response["quota_set"]["instances"],
+                                     "key_pairs": response["quota_set"]["key_pairs"],
+                                     "metadata_items": response["quota_set"]["metadata_items"],
+                                     "ram": response["quota_set"]["ram"],
+                                     "security_group_rules": response["quota_set"]["security_group_rules"],
+                                     "security_groups": response["quota_set"]["security_groups"]}}
+
+            response = openstack_new.put(url=openstack_new.auth_args["url_nova_api"] + "/" +
+                                         openstack_new.get_current_tenant_details()["id"] + "/os-quota-sets/" +
+                                         sync.get_tenant(tenant_id)["id"],
+                                         payload=payload)
 
             debug.debug_hash_line()
+            debug.debug_message("Tenant " + sync.get_tenant(tenant_id)["id"] + " quota updated!")
 
     """
     ###############################################################################################
-    #######                                Default Quota                                    #######
+    #######                                     Users                                       #######
     ###############################################################################################
     Documentation comment
     -----------------------------------------------------------------------------------------------
     """
     debug.debug_hash_line()
-    debug.debug_message("Default quota")
+    debug.debug_message("Users")
 
-    # get the default quota for the old openstack
-    response_quote = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" +
-                                       openstack_old.get_current_tenant_details()["id"] + "/os-quota-sets/" +
-                                       openstack_old.get_current_tenant_details()["id"] + "/defaults")
+    response = openstack_old.get(url=openstack_old.auth_args["url_keystone_admin"] + "/users")
 
-    debug.debug_message("the default quota retrieved [old openstack]")
+    if "error" in response and "code" in response["error"] and response["error"]["code"] == 403:
+        debug.debug_message("Administrator user required!!")
+        exit()
 
+    for user in response["users"]:
+        payload = {"user": {"email": user["email"],
+                            "enabled": user["enabled"],
+                            "name": user["name"],
+                            "tenantId": sync.get_tenant(user["tenantId"])["id"],
+                            "username": user["username"]}}
 
-    payload = {"quota_class_set": {"injected_file_content_bytes": response_quote["quota_set"]["injected_file_content_bytes"],
-                                   "metadata_items": response_quote["quota_set"]["metadata_items"],
-                                   "ram": response_quote["quota_set"]["ram"],
-                                   "floating_ips": response_quote["quota_set"]["floating_ips"],
-                                   "key_pairs": response_quote["quota_set"]["key_pairs"],
-                                   "instances": response_quote["quota_set"]["instances"],
-                                   "security_group_rules": response_quote["quota_set"]["security_group_rules"],
-                                   "injected_files": response_quote["quota_set"]["injected_files"],
-                                   "cores": response_quote["quota_set"]["cores"],
-                                   "fixed_ips": response_quote["quota_set"]["fixed_ips"],
-                                   "injected_file_path_bytes": response_quote["quota_set"]["injected_file_path_bytes"],
-                                   "security_groups": response_quote["quota_set"]["security_groups"]}}
+        response_create = openstack_new.post(url=openstack_new.auth_args["url_keystone_admin"] + "/users",
+                                             payload=payload)
 
-    # now we must set the default quota in the new openstack
-    response = openstack_new.put(url=openstack_new.auth_args["url_nova_api"] + "/" +
-                                 openstack_new.get_current_tenant_details()["id"] + "/os-quota-class-sets/default",
-                                 payload=payload)
-
-    debug.debug_hash_line()
-
-    """
-    ###############################################################################################
-    #######                                Tenants Quota                                    #######
-    ###############################################################################################
-    Documentation comment
-    -----------------------------------------------------------------------------------------------
-    """
-    for tenant_id in sync.get_tenants_id():
-        response = openstack_old.get(url=openstack_old.auth_args["url_nova_api"] + "/" +
-                                     openstack_old.get_current_tenant_details()["id"] + "/os-quota-sets/" + tenant_id)
-
-        payload = {"quota_set": {"tenant_id": sync.get_tenant(tenant_id)["id"],
-                                 "cores": response["quota_set"]["cores"],
-                                 "fixed_ips": response["quota_set"]["fixed_ips"],
-                                 "floating_ips": response["quota_set"]["floating_ips"],
-                                 "injected_file_content_bytes": response["quota_set"]["injected_file_content_bytes"],
-                                 "injected_file_path_bytes": response["quota_set"]["injected_file_path_bytes"],
-                                 "injected_files": response["quota_set"]["injected_files"],
-                                 "instances": response["quota_set"]["instances"],
-                                 "key_pairs": response["quota_set"]["key_pairs"],
-                                 "metadata_items": response["quota_set"]["metadata_items"],
-                                 "ram": response["quota_set"]["ram"],
-                                 "security_group_rules": response["quota_set"]["security_group_rules"],
-                                 "security_groups": response["quota_set"]["security_groups"]}}
-
-        response = openstack_new.put(url=openstack_new.auth_args["url_nova_api"] + "/" +
-                                     openstack_new.get_current_tenant_details()["id"] + "/os-quota-sets/" +
-                                     sync.get_tenant(tenant_id)["id"],
-                                     payload=payload)
+        # remove this to work
         pass
+        exit()
+
     pass
